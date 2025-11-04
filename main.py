@@ -1,58 +1,67 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict
-from fastapi.middleware.cors import CORSMiddleware  # 👈 NEW import
+from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 
 app = FastAPI(title="Phone Name System (PNS)")
 
-# 👇 Add this block right after app is defined
+# --- Enable CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # for now allow all; you can later restrict this
+    allow_origins=["*"],  # allow all for now (frontend, etc.)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# In-memory "database"
-registry: Dict[str, str] = {}  # handle → phone
-reverse_registry: Dict[str, str] = {}  # phone → handle
+# --- SQLite setup ---
+conn = sqlite3.connect("pns.db", check_same_thread=False)
+cursor = conn.cursor()
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS registry (
+    handle TEXT PRIMARY KEY,
+    phone TEXT UNIQUE
+)
+""")
+conn.commit()
 
+# --- Data Model ---
 class Registration(BaseModel):
     handle: str
     phone: str
 
-
+# --- Register Endpoint ---
 @app.post("/register")
 def register_user(reg: Registration):
-    if reg.handle in registry:
-        raise HTTPException(status_code=400, detail="Handle already exists")
-    if reg.phone in reverse_registry:
-        raise HTTPException(status_code=400, detail="Phone already registered")
+    try:
+        cursor.execute("INSERT INTO registry (handle, phone) VALUES (?, ?)", (reg.handle, reg.phone))
+        conn.commit()
+        return {"message": "Registered successfully", "handle": reg.handle, "phone": reg.phone}
+    except sqlite3.IntegrityError as e:
+        if "UNIQUE constraint failed: registry.handle" in str(e):
+            raise HTTPException(status_code=400, detail="Handle already exists")
+        elif "UNIQUE constraint failed: registry.phone" in str(e):
+            raise HTTPException(status_code=400, detail="Phone already registered")
+        else:
+            raise HTTPException(status_code=500, detail="Database error")
 
-    registry[reg.handle] = reg.phone
-    reverse_registry[reg.phone] = reg.handle
-    return {
-        "message": "Registered successfully",
-        "handle": reg.handle,
-        "phone": reg.phone,
-    }
-
-
+# --- Resolve Endpoint ---
 @app.get("/resolve")
 def resolve_number(number: str = None, handle: str = None):
     if number:
-        handle = reverse_registry.get(number)
-        if not handle:
-            raise HTTPException(status_code=404, detail="Number not found")
-        return {"phone": number, "handle": handle}
+        cursor.execute("SELECT handle FROM registry WHERE phone=?", (number,))
+        row = cursor.fetchone()
+        if row:
+            return {"phone": number, "handle": row[0]}
+        raise HTTPException(status_code=404, detail="Number not found")
 
     elif handle:
-        phone = registry.get(handle)
-        if not phone:
-            raise HTTPException(status_code=404, detail="Handle not found")
-        return {"handle": handle, "phone": phone}
+        cursor.execute("SELECT phone FROM registry WHERE handle=?", (handle,))
+        row = cursor.fetchone()
+        if row:
+            return {"handle": handle, "phone": row[0]}
+        raise HTTPException(status_code=404, detail="Handle not found")
 
     else:
         raise HTTPException(status_code=400, detail="Provide a number or handle to resolve")
