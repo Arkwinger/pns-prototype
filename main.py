@@ -75,7 +75,7 @@ def resolve_number(number: str = None, handle: str = None):
     else:
         raise HTTPException(status_code=400, detail="Provide a number or handle to resolve")
 
-# --- Optional Root Route (for friendly homepage) ---
+# --- Root Route (Friendly Homepage) ---
 @app.get("/")
 def root():
     return {
