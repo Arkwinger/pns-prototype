@@ -1,12 +1,23 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict
+from fastapi.middleware.cors import CORSMiddleware  # 👈 NEW import
 
 app = FastAPI(title="Phone Name System (PNS)")
+
+# 👇 Add this block right after app is defined
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for now allow all; you can later restrict this
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # In-memory "database"
 registry: Dict[str, str] = {}  # handle → phone
 reverse_registry: Dict[str, str] = {}  # phone → handle
+
 
 class Registration(BaseModel):
     handle: str
@@ -22,7 +33,11 @@ def register_user(reg: Registration):
 
     registry[reg.handle] = reg.phone
     reverse_registry[reg.phone] = reg.handle
-    return {"message": "Registered successfully", "handle": reg.handle, "phone": reg.phone}
+    return {
+        "message": "Registered successfully",
+        "handle": reg.handle,
+        "phone": reg.phone,
+    }
 
 
 @app.get("/resolve")
