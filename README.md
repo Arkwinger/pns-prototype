@@ -1,10 +1,10 @@
-# 📱 Phone Name System (PNS)
+#  Phone Name System (PNS)
 
 > A prototype "DNS for phone numbers" — mapping human-readable handles (like `@arkwinger`) to real phone numbers.
 
 ---
 
-## 🌍 Live Demo
+## Live Demo
 
 - **Frontend:** [https://arkwinger.github.io/pns-prototype/](https://arkwinger.github.io/pns-prototype/)
 - **Backend API:** [https://pns-prototype.onrender.com/docs](https://pns-prototype.onrender.com/docs)
@@ -74,4 +74,4 @@ Created as a prototype experiment for a modern identity layer between phone and 
 
 ---
 
-📦 *Repository:* [https://github.com/Arkwinger/pns-prototype](https://github.com/Arkwinger/pns-prototype)
+ *Repository:* [https://github.com/Arkwinger/pns-prototype](https://github.com/Arkwinger/pns-prototype)
