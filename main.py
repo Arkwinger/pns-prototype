@@ -15,7 +15,9 @@ app.add_middleware(
 )
 
 # --- SQLite setup ---
-conn = sqlite3.connect("pns.db", check_same_thread=False)
+# Use Render’s persistent path so the database survives restarts/redeploys
+DB_PATH = "/opt/render/project/src/pns.db"
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -35,9 +37,16 @@ class Registration(BaseModel):
 @app.post("/register")
 def register_user(reg: Registration):
     try:
-        cursor.execute("INSERT INTO registry (handle, phone) VALUES (?, ?)", (reg.handle, reg.phone))
+        cursor.execute(
+            "INSERT INTO registry (handle, phone) VALUES (?, ?)",
+            (reg.handle, reg.phone)
+        )
         conn.commit()
-        return {"message": "Registered successfully", "handle": reg.handle, "phone": reg.phone}
+        return {
+            "message": "Registered successfully",
+            "handle": reg.handle,
+            "phone": reg.phone
+        }
     except sqlite3.IntegrityError as e:
         if "UNIQUE constraint failed: registry.handle" in str(e):
             raise HTTPException(status_code=400, detail="Handle already exists")
@@ -65,3 +74,15 @@ def resolve_number(number: str = None, handle: str = None):
 
     else:
         raise HTTPException(status_code=400, detail="Provide a number or handle to resolve")
+
+# --- Optional Root Route (for friendly homepage) ---
+@app.get("/")
+def root():
+    return {
+        "message": "📱 Welcome to the Phone Name System API!",
+        "endpoints": {
+            "Register": "/register",
+            "Resolve": "/resolve",
+            "Docs": "/docs"
+        }
+    }
