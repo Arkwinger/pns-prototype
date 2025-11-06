@@ -69,7 +69,7 @@ for messaging and caller identification.
 
 ##  Credits
 
-Built by **Arkwinger**  
+Built by **Ark**  
 Created as a prototype experiment for a modern identity layer between phone and web.
 
 ---
